@@ -1,6 +1,9 @@
 # Image-stacking
 Image stacking for lower SNR
 
+## Dropbox source frames and results:
+[frames and results](https://www.dropbox.com/sh/9lmp1ietl2mlydv/AABHkiXNAkWDFf-j9yzsKf1na?dl=0)
+
 ## Used libraries:
 - [imreg_dft](https://github.com/matejak/imreg_dft)
 
@@ -34,7 +37,7 @@ Pythons build in librarie multiprocessing is used.
 - multiprocessing.RawArray (simple 1D array that diferrent processes can share)
 
 #### part_channel_reg
-Evry process (4, one per CPU core) is running the imreg_dft.similarity function on part of the selected color channel. The resulting aligned images (after the transformation) are transformed into a 1D shape (numpy.reshape) and are stored into the shared arrays (one per channel).
+Every process (4, one per CPU core) is running the imreg_dft.similarity function on part of the selected color channel. The resulting aligned images (after the transformation) are transformed into a 1D shape (numpy.reshape) and are stored into the shared arrays (one per channel).
 #### single_channel_average
 The shared arrays are passed to the function. Four processes are run. One process calculates the average image for one channel.
 
