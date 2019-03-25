@@ -6,7 +6,7 @@ Created on Fri Mar 22 10:37:33 2019
 @author: juren
 """
 
-
+import numba
 import multiprocessing
 from tqdm import tqdm
 import glob
@@ -32,7 +32,9 @@ for i in range(len(paths)):
 """
 Loading the first image to get the image dimensions for definition of arrays
 """
-im = gdal_array.LoadFile(paths[0])
+template_id = 3
+
+im = gdal_array.LoadFile(paths[template_id])
 
 """
 Every CHx array represents a color channel of all images
@@ -45,6 +47,8 @@ CH2 = np.zeros((number_of_files, len(
     im[0, :, 0]), len(im[0, 0, :])), dtype=np.int16)
 CH3 = np.zeros((number_of_files, len(
     im[0, :, 0]), len(im[0, 0, :])), dtype=np.int16)
+Y0 = multiprocessing.Value("i", 0)
+Y1 = multiprocessing.Value("i", 9999)
 
 
 CH0[0] = im[0]
@@ -69,23 +73,25 @@ Shared array for the average results
 """
 AVGmp = multiprocessing.RawArray("d", 4 * len(im[0, :, 0]) * len(im[0, 0, :]))
 
-
-for i in range(1, number_of_files):
-    im = gdal_array.LoadFile(paths[i])
+i = 1
+while i < number_of_files:
+    if i < template_id:
+        j = i - 1
+    else:
+        j = i
+    im = gdal_array.LoadFile(paths[j])
     CH0[i] = im[0]
     CH1[i] = im[1]
     CH2[i] = im[2]
     CH3[i] = im[3]
+    i = i + 1
+
 stop = time.time()
+print("File reading time:")
 print(stop - start)
+print("\n")
 
 image_1d_size = len(im[0, :, 0]) * len(im[0, 0, :])
-
-
-print(CH0mp[8500000])
-print(CH1mp[8500000])
-print(CH2mp[8500000])
-print(CH3mp[8500000])
 
 
 def part_channel_reg(
@@ -100,78 +106,74 @@ def part_channel_reg(
         CH2mp,
         CH3mp):
 
-    img_start = template_id * len(im[0, :, 0]) * len(im[0, 0, :])
+    img_start = 0
     img_stop = img_start + len(im[0, :, 0]) * len(im[0, 0, :])
     """
     saves the templage image for evry channel
     """
     if core_number == 0:
-        CH0mp[img_start:img_stop] = np.reshape(CH0[template_id], image_1d_size)
+        CH0mp[img_start:img_stop] = np.reshape(CH0[0], image_1d_size)
     if core_number == 1:
-        CH1mp[img_start:img_stop] = np.reshape(CH0[template_id], image_1d_size)
+        CH1mp[img_start:img_stop] = np.reshape(CH0[0], image_1d_size)
     if core_number == 2:
-        CH2mp[img_start:img_stop] = np.reshape(CH0[template_id], image_1d_size)
+        CH2mp[img_start:img_stop] = np.reshape(CH0[0], image_1d_size)
     if core_number == 3:
-        CH3mp[img_start:img_stop] = np.reshape(CH0[template_id], image_1d_size)
+        CH3mp[img_start:img_stop] = np.reshape(CH0[0], image_1d_size)
 
     for i in tqdm(range(start_id, stop_id), position=core_number):
-        if i != template_id:
-            """ird.similarity return the transformation data for every image
-            basend on the template image (translation vector, rotation angle
-            and scale"""
-            img_start = i * image_1d_size
-            img_stop = img_start + image_1d_size
-            result = ird.similarity(
-                CH_array[template_id],
-                CH_array[i],
-                numiter=1,
-                order=1)
 
-            """transforms the image from the selected channel based on the
-            transformation data"""
-            img_transformed = ird.transform_img(
-                CH0[i],
-                scale=result['scale'],
-                angle=result['angle'],
-                tvec=result['tvec'],
-                mode='constant',
-                bgval=0,
-                order=3)
-            CH0mp[img_start:img_stop] = np.reshape(
-                img_transformed, image_1d_size)
-            img_transformed = ird.transform_img(
-                CH1[i],
-                scale=result['scale'],
-                angle=result['angle'],
-                tvec=result['tvec'],
-                mode='constant',
-                bgval=0,
-                order=3)
-            CH1mp[img_start:img_stop] = np.reshape(
-                img_transformed, image_1d_size)
-            img_transformed = ird.transform_img(
-                CH2[i],
-                scale=result['scale'],
-                angle=result['angle'],
-                tvec=result['tvec'],
-                mode='constant',
-                bgval=0,
-                order=3)
-            CH2mp[img_start:img_stop] = np.reshape(
-                img_transformed, image_1d_size)
-            img_transformed = ird.transform_img(
-                CH3[i],
-                scale=result['scale'],
-                angle=result['angle'],
-                tvec=result['tvec'],
-                mode='constant',
-                bgval=0,
-                order=3)
-            CH3mp[img_start:img_stop] = np.reshape(
-                img_transformed, image_1d_size)
+        """ird.similarity return the transformation data for every image
+        basend on the template image (translation vector, rotation angle
+        and scale"""
+        img_start = i * image_1d_size
+        img_stop = img_start + image_1d_size
+        result = ird.similarity(
+            CH_array[template_id],
+            CH_array[i],
+            numiter=1,
+            order=1)
+
+        """transforms the image from the selected channel based on the
+        transformation data"""
+        img_transformed = ird.transform_img(
+            CH0[i],
+            scale=result['scale'],
+            angle=result['angle'],
+            tvec=result['tvec'],
+            mode='constant',
+            bgval=0,
+            order=1)
+        CH0mp[img_start:img_stop] = np.reshape(img_transformed, image_1d_size)
+        img_transformed = ird.transform_img(
+            CH1[i],
+            scale=result['scale'],
+            angle=result['angle'],
+            tvec=result['tvec'],
+            mode='constant',
+            bgval=0,
+            order=1)
+        CH1mp[img_start:img_stop] = np.reshape(img_transformed, image_1d_size)
+        img_transformed = ird.transform_img(
+            CH2[i],
+            scale=result['scale'],
+            angle=result['angle'],
+            tvec=result['tvec'],
+            mode='constant',
+            bgval=0,
+            order=1)
+        CH2mp[img_start:img_stop] = np.reshape(img_transformed, image_1d_size)
+        img_transformed = ird.transform_img(
+            CH3[i],
+            scale=result['scale'],
+            angle=result['angle'],
+            tvec=result['tvec'],
+            mode='constant',
+            bgval=0,
+            order=1)
+        CH3mp[img_start:img_stop] = np.reshape(img_transformed, image_1d_size)
 
 
-def single_channel_average(channel, core_number, AVGmp):
+def single_channel_average(channel, core_number, AVGmp, Y0, Y1):
     #    for i in  tqdm(range(image_1d_size), position=core_number):
     # for i in range(image_1d_size):
     #        count=0
@@ -190,27 +192,33 @@ def single_channel_average(channel, core_number, AVGmp):
     CH_avg = np.zeros((len(im[0, :, 0]), len(im[0, 0, :])))
     CH = np.frombuffer(channel).reshape(
         (number_of_files, len(im[0, :, 0]), len(im[0, 0, :])))
-    for i in tqdm(range(len(im[0, :, 0])), position=core_number):
-        for j in range(len(im[0, 0, :])):
-            suma = 0
-            count = 0
-            for k in range(number_of_files):
-                if CH[k, i, j] > 0:
-                    count = count + 1
-
-                suma = suma + CH[k, i, j]
-
-            if count == number_of_files:
-                CH_avg[i, j] = suma / number_of_files
-            else:
-                CH_avg[i, j] = 0
-
-    gdal_array.SaveArray(
-        CH_avg,
-        str(core_number) +
-        "test_test_gdalsave.tif",
-        format="GTiff",
-        prototype=None)
+#    for i in tqdm(range(len(im[0,:,0])), position=core_number):
+#        for j in range(len(im[0,0,:])):
+#            suma = 0
+#            count=0
+#            for k in range(number_of_files):
+#                if CH[k, i, j] > 0:
+#                    count=count+1
+#
+#                suma = suma + CH[k, i, j]
+#
+#            if count == number_of_files:
+#                CH_avg[i, j] = suma / number_of_files
+#            else:
+#                CH_avg[i,j]=0
+    y0 = 0
+    y1 = len(im[0, 0, :])
+    for i in tqdm(range(number_of_files), position=core_number):
+        CH_avg = CH_avg + CH[i]
+        non_zero_image = CH[i] > 0
+        coords = np.argwhere(non_zero_image)
+        y0, x0 = coords.min(axis=0)
+        y1, x1 = coords.max(axis=0) + 1
+        if y0 > Y0.value:
+            Y0.value = y0
+        if y1 < Y1.value:
+            Y1.value = y1
+    CH_avg = CH_avg / number_of_files
 
     img_start = core_number * image_1d_size
     img_stop = img_start + image_1d_size
@@ -220,9 +228,9 @@ def single_channel_average(channel, core_number, AVGmp):
 files_per_core = int(number_of_files / 4)
 
 if __name__ == '__main__':
-
+    reg_start = time.time()
+    print("Image registration on 4 cores: \n")
     channel_id = 3
-    template_id = 3
     jobs = []
     if channel_id == 0:
         CH_array = CH0
@@ -234,16 +242,16 @@ if __name__ == '__main__':
         CH_array = CH3
     for i in range(4):
         if i == 0:
-            start_id = files_per_core * i
-            stop_id = files_per_core * (i + 1)
+            start_id = 1 + files_per_core * i
+            stop_id = 1 + files_per_core * (i + 1)
         if i == 1:
-            start_id = files_per_core * i
-            stop_id = files_per_core * (i + 1)
+            start_id = 1 + files_per_core * i
+            stop_id = 1 + files_per_core * (i + 1)
         if i == 2:
-            start_id = files_per_core * i
-            stop_id = files_per_core * (i + 1)
+            start_id = 1 + files_per_core * i
+            stop_id = 1 + files_per_core * (i + 1)
         if i == 3:
-            start_id = files_per_core * i
+            start_id = 1 + files_per_core * i
             stop_id = number_of_files
 
         """for i in range 4 (number of channels) starts a process on a new
@@ -268,9 +276,13 @@ if __name__ == '__main__':
     middle_time = time.time()
     for p in jobs:
         p.join()
-
+    reg_stop = time.time()
+    print("\n \n \n \n")
+    print("Registration time:")
+    print(reg_stop - reg_start)
+    print("Image averaging: \n")
     jobs_avg = []
-
+    avg_start = time.time()
     for k in range(4):
         if k == 0:
             channel = CH0mp
@@ -282,12 +294,15 @@ if __name__ == '__main__':
             channel = CH3mp
         q = multiprocessing.Process(
             target=single_channel_average, args=(
-                channel, k, AVGmp))
+                channel, k, AVGmp, Y0, Y1))
         jobs_avg.append(q)
         q.start()
     for q in jobs_avg:
         q.join()
-
+    avg_stop = time.time()
+    print("\n \n \n \n")
+    print("Averaging time: ")
+    print(avg_stop - avg_start)
 #   The images are transformed back from the 1d shared array to 2d
     CH0_avg = np.reshape(AVGmp[0:image_1d_size],
                          (len(im[0, :, 0]), len(im[0, 0, :])))
@@ -298,20 +313,14 @@ if __name__ == '__main__':
     CH3_avg = np.reshape(
         AVGmp[3 * image_1d_size:4 * image_1d_size], (len(im[0, :, 0]), len(im[0, 0, :])))
 
-#   Cropping the black part of the images
-    non_zero_image = CH0_avg > 0
-    coords = np.argwhere(non_zero_image)
-    y0, x0 = coords.min(axis=0)
-    y1, x1 = coords.max(axis=0) + 1
 
 # Left and right border manual crop
-    x0 = x0 + 100
-    x1 = x1 - 100
+    x0 = 100
+    x1 = len(im[0, :, 0]) - 100
 # top and bottom border manual crop
-    y0 = y0 + 50
-    y1 = y1 - 50
+    y0 = Y0.value + 50
+    y1 = Y1.value - 50
     CH1234 = np.empty((4, y1 - y0, x1 - x0), dtype=np.int16)
-    print((len(CH1234[0, :, 0]), len(CH1234[0, 0, :])))
 
     CH1234[0] = CH0_avg[y0:y1, x0:x1]
     CH1234[1] = CH1_avg[y0:y1, x0:x1]
@@ -344,3 +353,6 @@ if __name__ == '__main__':
         "CH1234_average.tif",
         format="GTiff",
         prototype=None)
+    stop2 = time.time()
+    print("Completed process after: \n")
+    print(stop2 - start)
