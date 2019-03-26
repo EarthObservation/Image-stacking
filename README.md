@@ -7,12 +7,10 @@ python image_registration.py template_id channel_id averaging_mode file_name
 #### example
 python image_registration.py 3 3 cmd data
 ### The scripts takes 4 arguments:
-- template_id (integer) 0-number_of_files
-- channel_id (integer) 0-number_of_channels
-- averaging mode (string) cmd,crp 
-  cmd --> returns the full sizes image with partial to complete overlaying
-  crp --> return a cropped image of the area where all filles are overlaying
- - file_name (string, optional), in addition to the channel_id, template_id, and averaging mode, file_name is added to the basename of the text file where the transformation results are saved. If non provided, the script doesnt write to txt.
+1. template_id (integer) 0-number_of_files
+2. channel_id (integer) 0-number_of_channels
+3. averaging mode (string) cmd,crp. cmd --> returns the full sizes image with partial to complete overlaying. crp --> returns a cropped image of the area where all filles are overlaying
+4. file_name (string, optional), in addition to the channel_id, template_id, and averaging mode, file_name is added to the basename of the text file where the transformation results are saved. If non provided, the script doesnt write to txt.
 
 ## Dropbox source frames and results:
 [frames and results](https://www.dropbox.com/sh/9lmp1ietl2mlydv/AABHkiXNAkWDFf-j9yzsKf1na?dl=0)
