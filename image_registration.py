@@ -6,7 +6,7 @@ Created on Fri Mar 22 10:37:33 2019
 @author: juren
 """
 
-
+import scipy
 import sys
 import multiprocessing
 from tqdm import tqdm
@@ -31,16 +31,12 @@ print("File list:")
 for i in range(len(paths)):
     print(os.path.basename(paths[i]))
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 3:
     print("Parameters missing not set. Add paramaters.")
-    print(
-        sys.argv[0] +
-        " template_id channel_id averaging_mode file_name(optional).")
+    print(sys.argv[0] + "channel_id averaging_mode file_name(optional).")
     print("\n")
-    print(
-        "template_id: Index (integer) of the template image for the registration. From 0 to " +
-        str(number_of_files) +
-        ".")
+    print("template_id: automatic setting " +
+          str(int(number_of_files / 2)) + ".")
     print("channel_id: Index (integer) of the choosen channel for image registration From 0 to 3.")
     print("Averaging mode: ")
     print("cmp  Returns the full image with partial to full overlaying.")
@@ -52,8 +48,9 @@ else:
     """
     Loading the first image to get the image dimensions for definition of arrays
     """
-    template_id = int(sys.argv[1])
-    channel_id = int(sys.argv[2])
+
+    template_id = int(number_of_files / 2)
+    channel_id = int(sys.argv[1])
 
     im = gdal_array.LoadFile(paths[template_id])
 
@@ -127,7 +124,7 @@ else:
             CH1mp,
             CH2mp,
             CH3mp):
-        if len(sys.argv) == 5:
+        if len(sys.argv) == 4:
             writer = open(
                 str(template_id) +
                 "_" +
@@ -168,7 +165,7 @@ else:
             img_start = i * image_1d_size
             img_stop = img_start + image_1d_size
             result = ird.similarity(
-                CH_array[0], CH_array[i], numiter=3, order=3)
+                CH_array[0], CH_array[i], numiter=1, order=1)
             if len(sys.argv) == 5:
                 writer.write(str(i) +
                              " " +
@@ -245,7 +242,7 @@ else:
         CH_avg = np.zeros((len(im[0, :, 0]), len(im[0, 0, :])))
         CH = np.frombuffer(channel).reshape(
             (number_of_files, len(im[0, :, 0]), len(im[0, 0, :])))
-        if sys.argv[3] == 'cmp':
+        if sys.argv[2] == 'cmp':
             for i in tqdm(range(len(im[0, :, 0])), position=core_number):
                 for j in range(len(im[0, 0, :])):
                     suma = 0
@@ -261,7 +258,7 @@ else:
                     else:
                         CH_avg[i, j] = 0
 
-        if sys.argv[3] == 'crp':
+        if sys.argv[2] == 'crp':
             y0 = 0
             y1 = len(im[0, 0, :])
             for i in tqdm(range(number_of_files), position=core_number):
@@ -285,8 +282,8 @@ else:
     if __name__ == '__main__':
         print("template_id: " + str(template_id))
         print("channel_id: " + str(channel_id))
-        print("Selected averaging mode: " + sys.argv[3] + "\n")
-        if len(sys.argv) > 4:
+        print("Selected averaging mode: " + sys.argv[2] + "\n")
+        if len(sys.argv) > 3:
             print("Text mode is ON")
         else:
             print("Text mode is OFF")
@@ -374,7 +371,7 @@ else:
         CH3_avg = np.reshape(
             AVGmp[3 * image_1d_size:4 * image_1d_size], (len(im[0, :, 0]), len(im[0, 0, :])))
 
-        if sys.argv[3] == 'crp':
+        if sys.argv[2] == 'crp':
 
             # Left and right border manual crop
             x0 = 100
@@ -479,6 +476,7 @@ else:
                 "_CH1234_cmp_average.tif",
                 format="GTiff",
                 prototype=None)
+
         stop2 = time.time()
         print("Completed process after:")
         print(stop2 - start)
