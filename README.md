@@ -5,8 +5,8 @@ Image stacking for lower SNR
 ### Running
 python image_registration.py template_id channel_id averaging_mode file_name
 #### example
-python image_registration.py 3 3 cmd data
-### The scripts takes ~~4~~ 3 arguments:
+python image_registration.py 3 cmd data
+### The scripts takes 3 arguments:
 ~~1. template_id (integer) 0-number_of_files~~
 1. template_id is automatically set --> int(number_of_files/2)
 2. channel_id (integer) 0-number_of_channels
