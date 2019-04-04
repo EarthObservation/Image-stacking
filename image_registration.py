@@ -250,8 +250,8 @@ else:
             (number_of_files, len(im[0, :, 0]), len(im[0, 0, :])))
 
         if sys.argv[2] == 'cmp':
-            #            cutting border pixels
             cuting_lenght = 2
+#            cutting horizontal border pixels
             for i in tqdm(
                     range(
                         1,
@@ -270,6 +270,18 @@ else:
                                 CH[i, y0 + k, j] = 0
                             if y1 - k >= 0:
                                 CH[i, y1 - k, j] = 0
+#                cutting vertical border pixels
+                for j in range(len(im[0, 0, :])):
+                    non_zero_row = CH[i, j, :] > 0
+                    coords = np.argwhere(non_zero_row)
+                    if len(coords) > 0:
+                        x0 = coords.min(axis=0)
+                        x1 = coords.max(axis=0)
+                        for k in range(cuting_lenght):
+                            if x0 + k < (len(im[0, 0, :])):
+                                CH[i, j, x0 + k] = 0
+                            if x1 - k >= 0:
+                                CH[i, j, x1 - k] = 0
             time.sleep(0.5)
 #
 
