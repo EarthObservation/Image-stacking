@@ -157,7 +157,13 @@ else:
         if core_number == 3:
             CH3mp[img_start:img_stop] = np.reshape(CH0[0], image_1d_size)
 
-        for i in tqdm(range(start_id, stop_id), position=core_number):
+        for i in tqdm(
+                range(
+                    start_id,
+                    stop_id),
+                position=core_number,
+                desc="Aligning channel " +
+                str(core_number)):
 
             """ird.similarity return the transformation data for every image
             basend on the template image (translation vector, rotation angle
@@ -242,13 +248,39 @@ else:
         CH_avg = np.zeros((len(im[0, :, 0]), len(im[0, 0, :])))
         CH = np.frombuffer(channel).reshape(
             (number_of_files, len(im[0, :, 0]), len(im[0, 0, :])))
+
         if sys.argv[2] == 'cmp':
-            for i in tqdm(range(len(im[0, :, 0])), position=core_number):
+            #            cutting border pixels
+            cuting_lenght = 2
+            for i in tqdm(
+                    range(
+                        1,
+                        number_of_files),
+                    position=core_number,
+                    desc="Cutting border on channel: " +
+                    str(core_number)):
+                for j in range(len(im[0, :, 0])):
+                    non_zero_col = CH[i, :, j] > 0
+                    coords = np.argwhere(non_zero_col)
+                    if len(coords) > 0:
+                        y0 = coords.min(axis=0)
+                        y1 = coords.max(axis=0)
+                        for k in range(cuting_lenght):
+                            if y0 + k < (len(im[0, :, 0])):
+                                CH[i, y0 + k, j] = 0
+                            if y1 - k >= 0:
+                                CH[i, y1 - k, j] = 0
+            time.sleep(0.5)
+#
+
+            print("\n")
+            for i in tqdm(range(len(im[0, :, 0])), position=core_number,
+                          desc="Averaging channel " + str(core_number)):
                 for j in range(len(im[0, 0, :])):
                     suma = 0
                     count = 0
                     for k in range(number_of_files):
-                        if CH[k, i, j] > 0:
+                        if int(CH[k, i, j]) > 0:
                             count = count + 1
 
                         suma = suma + CH[k, i, j]
@@ -261,7 +293,11 @@ else:
         if sys.argv[2] == 'crp':
             y0 = 0
             y1 = len(im[0, 0, :])
-            for i in tqdm(range(number_of_files), position=core_number):
+            for i in tqdm(
+                    range(number_of_files),
+                    position=core_number,
+                    desc="Averaging channel " +
+                    str(core_number)):
                 CH_avg = CH_avg + CH[i]
                 non_zero_image = CH[i] > 0
                 coords = np.argwhere(non_zero_image)
