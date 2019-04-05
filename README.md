@@ -7,7 +7,6 @@ python image_registration.py template_id channel_id averaging_mode file_name
 #### example
 python image_registration.py 3 cmd data
 ### The scripts takes 3 arguments:
-~~1. template_id (integer) 0-number_of_files~~
 1. template_id is automatically set --> int(number_of_files/2)
 2. channel_id (integer) 0-number_of_channels
 3. averaging mode (string) cmd,crp. cmd --> returns the full sizes image with partial to complete overlaying. crp --> returns a cropped image of the area where all filles are overlaying
@@ -44,9 +43,9 @@ python image_registration.py 3 cmd data
 The image registration is calculated only on one chosen channel. All other channels are transformed based on the resulting data (translation, rotation, scale).
 
 ### Multiprocessing:
-Pythons build in librarie multiprocessing is used. 
+Pythons build in library multiprocessing is used. 
 - multiprocessing.Process
-- multiprocessing.RawArray (simple 1D array that diferrent processes can share)
+- multiprocessing.RawArray (simple 1D array that different processes can share)
 
 #### part_channel_reg
 Every process (4, one per CPU core) is running the imreg_dft.similarity function on part of the selected color channel. The resulting aligned images (after the transformation) are transformed into a 1D shape (numpy.reshape) and are stored into the shared arrays (one per channel).
